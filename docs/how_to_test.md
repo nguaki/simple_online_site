@@ -1,5 +1,22 @@
 ## Phase 5: Testing locally
 
+start the recommender api
+
+navigate to the directory and run this command:
+/recommendation_restful_api# python main.py
+
+INFO:     Started server process [3915]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+
+Copy the URL and execute in browser.  (use http://localhost:8001/docs#/default/recommend_recommend_get)
+Sometimes http://0.0.0.0:8001 doesn't work.
+
+Test the API.
+
+If API works, do the following:
+
 To see this work with the `.env` values, you no longer double-click the file. You use the Vite server:
 
 ```bash
