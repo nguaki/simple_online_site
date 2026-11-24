@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ABC Store - SmartRecs Integration Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-10 font-sans">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-10 border-b pb-5 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-black text-red-600 tracking-tighter">ABC ONLINE STORE</h1>
+                <p class="text-gray-500 text-sm italic underline">Testing SmartRecs.com API Integration</p>
+            </div>
+            <div class="bg-white p-3 rounded-lg border text-xs font-mono shadow-sm">
+                API Status: <span id="api-status" class="text-orange-500 font-bold">Checking...</span>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            
+            <!-- 1. PRODUCT CATALOG -->
+            <div class="lg:col-span-2">
+                <h2 class="text-xl font-bold mb-5 uppercase tracking-widest text-gray-400">Inventory</h2>
+                <div class="grid grid-cols-2 gap-4" id="inventory">
+                    <!-- Items will be generated here -->
+                </div>
+            </div>
+
+            <!-- 2. CART & RECOMMENDATIONS -->
+            <div class="space-y-10">
+                <!-- CART -->
+                <div class="bg-white p-6 rounded-2xl shadow-lg border-2 border-gray-200">
+                    <h2 class="font-bold text-[#001529] mb-4 flex justify-between">
+                        Shopping Cart 
+                        <span id="cart-count" class="bg-red-500 text-white px-2 py-0.5 rounded-full text-[10px]">0</span>
+                    </h2>
+                    <ul id="cart-list" class="text-sm space-y-2 text-gray-600 mb-5">
+                        <li class="italic text-gray-400">Cart is empty</li>
+                    </ul>
+                    <button onclick="clearCart()" class="text-[10px] uppercase font-bold text-gray-400 hover:text-red-500 transition">Clear All</button>
+                </div>
+
+                <!-- DYNAMIC RECOMMENDATIONS -->
+                <div class="bg-[#001529] p-6 rounded-2xl shadow-2xl text-white">
+                    <h2 class="font-bold mb-4 text-blue-400 uppercase text-xs tracking-widest flex items-center gap-2">
+                        <span class="animate-pulse">●</span> Smart Recommendations
+                    </h2>
+                    <div id="recommendations" class="space-y-3">
+                        <p class="text-xs text-gray-500 italic">Add items to see AI predictions...</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Inside index.html - Replace your <script> section with this -->
+    <script type="module">
+        // ==========================================
+        // CONFIGURATION (Vite-Powered Environment)
+        // ==========================================
+        const API_URL = "http://127.0.0.1:8001/recommend";
+        
+        // FETCHING KEY FROM .env
+        const API_KEY = import.meta.env.VITE_SMARTRECS_API_KEY;
+
+        if (!API_KEY) {
+            console.error("Architect Warning: API_KEY is missing. Check your .env file.");
+        }
+
+        const inventoryItems = ["hot dog", "coke", "chips", "charcoal", "detergent"];
+        let cart = [];
+
+
+        // INITIALIZE UI
+        const invDiv = document.getElementById('inventory');
+        inventoryItems.forEach(item => {
+            invDiv.innerHTML += `
+                <div class="bg-white p-5 rounded-xl border hover:border-blue-500 transition-all flex justify-between items-center group">
+                    <span class="font-bold capitalize">${item}</span>
+                    <button onclick="addToCart('${item}')" class="bg-gray-100 group-hover:bg-blue-600 group-hover:text-white px-4 py-1.5 rounded-lg font-black text-sm transition-colors">ADD</button>
+                </div>
+            `;
+        });
+
+        // ACTION: ADD TO CART
+        function addToCart(item) {
+            if (!cart.includes(item)) {
+                cart.push(item);
+                updateUI();
+                getRecommendations();
+            }
+        }
+
+        function clearCart() {
+            cart = [];
+            updateUI();
+            document.getElementById('recommendations').innerHTML = '<p class="text-xs text-gray-500 italic">Add items to see AI predictions...</p>';
+        }
+
+        function updateUI() {
+            const list = document.getElementById('cart-list');
+            const count = document.getElementById('cart-count');
+            count.innerText = cart.length;
+            
+            if (cart.length === 0) {
+                list.innerHTML = '<li class="italic text-gray-400">Cart is empty</li>';
+                return;
+            }
+            list.innerHTML = cart.map(i => `<li class="flex justify-between border-b pb-1 capitalize"><span>${i}</span></li>`).join('');
+        }
+
+
+
+        async function getRecommendations() {
+            const statusEl = document.getElementById('api-status');
+            const recDiv = document.getElementById('recommendations');
+            
+            const params = new URLSearchParams();
+            cart.forEach(item => params.append('items', item));
+
+            try {
+                const response = await fetch(`${API_URL}?${params.toString()}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-API-KEY': API_KEY, // Variable injected here
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    statusEl.innerText = `Online (${data.latency_ms}ms)`;
+                    statusEl.className = "text-green-500 font-bold";
+                    renderRecommendations(data.recommendations);
+                } else {
+                    statusEl.innerText = "Auth Failed";
+                }
+            } catch (error) {
+                statusEl.innerText = "Offline (Connect FastAPI)";
+            }
+        }
+        
+        // IMPORTANT: Make sure to attach functions to the window object 
+        // because Vite modules are scoped.
+        window.addToCart = (item) => {
+            if (!cart.includes(item)) {
+                cart.push(item);
+                updateUI();
+                getRecommendations();
+            }
+        };
+        window.clearCart = () => {
+            cart = [];
+            updateUI();
+            document.getElementById('recommendations').innerHTML = '<p class="text-xs text-gray-500 italic">Add items...</p>';
+        };        
+        
+        function renderRecommendations(recs) {
+            const recDiv = document.getElementById('recommendations');
+            if (recs.length === 0) {
+                recDiv.innerHTML = '<p class="text-xs text-gray-400">No high-confidence matches found.</p>';
+                return;
+            }
+
+            recDiv.innerHTML = recs.map(r => `
+                <div class="flex justify-between items-center bg-white/10 p-3 rounded-lg border border-white/5 mb-2">
+                    <span class="capitalize font-medium text-sm">${r.item}</span>
+                    <span class="text-blue-600 font-mono text-xs font-bold">
+                        ${(r.score * 100).toFixed(0)}% Match
+                    </span>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
