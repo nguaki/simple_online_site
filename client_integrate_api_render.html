@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SME Client Test</title>
+</head>
+<body style="padding: 50px; font-family: sans-serif;">
+
+    <h1>SME Online Store</h1>
+    <p>Existing Cart System is Running...</p>
+
+    <!-- STEP 1: THE TARGET (WHERE PROFIT APPEARS) -->
+    <div id="smart-recs-hub"></div>
+
+    <!-- STEP 2: THE UNIVERSAL ADAPTER -->
+    <script src="http://localhost:5174/lib/v1.js"></script>
+
+    <!-- STEP 3: THE HEARTBEAT -->
+    <script>
+        SmartRecs.init("sr_live_777");
+
+        function onCustomerAdd(id) {
+            console.log("Customer chose:", id);
+            // One single line to summon the Sentinel Brain
+            SmartRecs.sync([id], '#smart-recs-hub');
+        }
+    </script>
+
+    <button onclick="onCustomerAdd('coke')" style="padding: 15px 30px; background: #001529; color: white; border-radius: 8px; cursor: pointer;">
+        Add Coca-Cola to Cart
+    </button>
+    <button onclick="onCustomerAdd('chips')" style="padding: 15px 30px; background: #001529; color: white; border-radius: 8px; cursor: pointer;">
+        Add chips to Cart
+    </button>
+</body>
+</html>

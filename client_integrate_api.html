@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SME Client Test | SmartRecs</title>
+</head>
+<body style="padding: 50px; font-family: sans-serif; background-color: #f8fafc;">
+
+    <h1>SME Online Store</h1>
+    <p style="color: #64748b;">Secured Integration Logic Active</p>
+
+    <!-- STEP 1: THE TARGET -->
+    <div id="smart-recs-hub" style="max-width: 400px;"></div>
+
+    <!-- STEP 2: THE UNIVERSAL ADAPTER -->
+    <script src="http://localhost:5174/lib/v2.js"></script>
+
+    <!-- STEP 3: THE HEARTBEAT (Refactored for .env) -->
+    <script type="module">
+        // Vite injects the key from .env into this variable
+        const API_KEY = import.meta.env.VITE_SMARTRECS_API_KEY;
+        SmartRecs.init(API_KEY);
+
+        window.onCustomerAdd = async (id) => {
+            //console.log("Step 1: Customer chose:", id);
+
+            try {
+                // WE MUST CATCH THE RETURNED VALUE
+                const recs = await SmartRecs.fetchRecs([id]);
+                
+                // LOG IT SO WE CAN SEE THE SUCCESS
+                // console.log("Step 2: Intelligence Received from Hub:", recs);
+
+                // OPTIONAL: Render a simple list just to prove it works
+                const display = document.getElementById('smart-recs-hub');
+                if (recs && recs.length > 0) {
+                    display.innerHTML = `
+                        <div style="background: #f0fdf4; p: 10px; border: 1px solid #bbf7d0;">
+                            <strong>Headless Data Received:</strong>
+                            ${recs.map(r => `<li>${r.item}</li>`).join('')}
+                        </div>
+                    `;
+                } else {
+                    display.innerHTML = "No matches found.";
+                }
+
+            } catch (error) {
+                console.error("Step 2: Failed to catch intelligence:", error);
+            }
+        };
+    </script>
+
+    <div style="margin-top: 30px; display: flex; gap: 10px;">
+        <button onclick="onCustomerAdd('coke')" style="padding: 15px 30px; background: #001529; color: white; border-radius: 8px; cursor: pointer; border: none; font-weight: bold;">
+            Add Coca-Cola
+        </button>
+        <button onclick="onCustomerAdd('chips')" style="padding: 15px 30px; background: #001529; color: white; border-radius: 8px; cursor: pointer; border: none; font-weight: bold;">
+            Add Chips
+        </button>
+    </div>
+</body>
+</html>
+
+
+
+

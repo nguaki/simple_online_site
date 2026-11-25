@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SME Client Test | SmartRecs Hub</title>
+</head>
+<body style="padding: 50px; font-family: sans-serif; background-color: #f8fafc;">
+
+    <h1>SME Online Store</h1>
+    <p style="color: #64748b;">Environment: <span id="display-env">Initializing...</span></p>
+
+    <!-- STEP 1: THE TARGET -->
+    <div id="smart-recs-hub" style="max-width: 400px; margin-bottom: 20px;"></div>
+
+    <!-- THE ENVIRONMENT SWITCHER UI -->
+    <div id="env-switcher" style="position: fixed; top: 0; right: 0; padding: 15px; background: #ffffff; border-bottom-left-radius: 12px; border: 1px solid #e2e8f0; z-index: 1000; font-family: monospace; font-size: 11px; shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <label style="color: #64748b; margin-right: 10px; font-weight: bold;">ENGINE SOURCE:</label>
+        <select id="env-selector" style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px;">
+            <option value="prod">🚀 Production (smartrecshub.com)</option>
+            <option value="dev">🛠️ Development (localhost:5174)</option>
+        </select>
+        <div id="lib-status" style="margin-top: 8px; font-weight: bold; color: #94a3b8;">Status: Waiting...</div>
+    </div>
+
+    <!-- STEP 3: THE HEARTBEAT (Refactored for .env & Visibility) -->
+    <script type="module">
+        // 1. EXTRACT VITE IDENTITY
+        const KEY = import.meta.env.VITE_SMARTRECS_API_KEY;
+        window.VITE_API_KEY = KEY; // Share key with the dynamic loader
+
+        // 2. DEFINE THE CORE CLICK HANDLER
+        // Attached to window so the HTML button can see it
+        window.onCustomerAdd = async (id) => {
+            if (!window.SmartRecs) return alert("SmartRecs Hub Engine not yet loaded!");
+
+            try {
+                console.log(`📡 [HUB] Fetching recs for: ${id}`);
+                const recs = await window.SmartRecs.fetchRecs([id]);
+                
+                const display = document.getElementById('smart-recs-hub');
+                if (recs && recs.length > 0) {
+                    display.innerHTML = `
+                        <div style="background: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e1e8ed; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
+                            <strong style="display: block; margin-bottom: 10px; color: #001529; font-size: 12px; text-transform: uppercase;">Next-Step Items:</strong>
+                            <ul style="list-style: none; padding: 0; margin: 0;">
+                                ${recs.map(r => `
+                                    <li style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9;">
+                                        <span style="text-transform: capitalize;">${r.item}</span>
+                                        <span style="color: #10b981; font-weight: bold;">${(r.score * 100).toFixed(0)}% MATCH</span>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    `;
+                } else {
+                    display.innerHTML = '<p style="font-size: 12px; color: #94a3b8;">Refining logic models...</p>';
+                }
+
+            } catch (error) {
+                console.error("Critical Failure in Logic Capture:", error);
+            }
+        };
+
+        // 3. APEX DYNAMIC LOADER
+        // We put this inside the module so it can see VITE_API_KEY immediately
+        function loadSmartRecsLibrary() {
+            const savedEnv = localStorage.getItem('smartrecs_env') || 'prod';
+            document.getElementById('env-selector').value = savedEnv;
+            document.getElementById('display-env').innerText = savedEnv.toUpperCase();
+            
+            const LIB_URL = savedEnv === 'prod' 
+                ? "https://www.smartrecshub.com/lib/v2.js" 
+                : "http://localhost:5174/lib/v2.js";
+
+            console.log(`📦 [LOADER] Fetching Library from ${savedEnv} source...`);
+
+            const script = document.createElement('script');
+            script.src = LIB_URL;
+            
+            script.onload = () => {
+                const statusEl = document.getElementById('lib-status');
+                statusEl.innerText = `ENGINE LIVE: ${savedEnv.toUpperCase()}`;
+                statusEl.style.color = "#10b981";
+                
+                // Initialize the Hub with the secured Key
+                if (window.SmartRecs) {
+                    window.SmartRecs.init(window.VITE_API_KEY);
+                }
+            };
+
+            script.onerror = () => {
+                const statusEl = document.getElementById('lib-status');
+                statusEl.innerText = `HUB CONNECTION FAILED`;
+                statusEl.style.color = "#ef4444";
+            };
+
+            document.head.appendChild(script);
+        }
+
+        // 4. ENV SWITCHER
+        // Attached to window because the HTML 'onchange' needs it
+        window.switchEnv = () => {
+            const val = document.getElementById('env-selector').value;
+            localStorage.setItem('smartrecs_env', val);
+            location.reload(); 
+        }
+
+        // 5. TRIGGER SELECTOR CHANGE
+        document.getElementById('env-selector').onchange = window.switchEnv;
+
+        // Initialize on Load
+        loadSmartRecsLibrary();
+    </script>
+
+    <!-- INTERFACE -->
+    <div style="margin-top: 30px; display: flex; gap: 15px;">
+        <button onclick="onCustomerAdd('coke')" style="padding: 12px 25px; background: #001529; color: white; border-radius: 10px; cursor: pointer; border: none; font-weight: bold; transition: all 0.2s;">
+            🛒 Add Coca-Cola
+        </button>
+        <button onclick="onCustomerAdd('chips')" style="padding: 12px 25px; background: #001529; color: white; border-radius: 10px; cursor: pointer; border: none; font-weight: bold; transition: all 0.2s;">
+            🛒 Add Chips
+        </button>
+    </div>
+</body>
+</html>
